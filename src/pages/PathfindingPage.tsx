@@ -33,9 +33,9 @@ interface Dimensions {
 }
 
 function gridDimensions(isDesktop: boolean, isTablet: boolean): Dimensions {
-  if (isDesktop) return { rows: 21, cols: 45 };
-  if (isTablet) return { rows: 19, cols: 29 };
-  return { rows: 21, cols: 15 };
+  if (isDesktop) return { rows: 16, cols: 30 };
+  if (isTablet) return { rows: 14, cols: 20 };
+  return { rows: 16, cols: 11 };
 }
 
 function createGrid({ rows, cols }: Dimensions): GridSpec {
@@ -51,6 +51,37 @@ function createGrid({ rows, cols }: Dimensions): GridSpec {
 
 const increment = (count: number) => count + 1;
 
+function StartIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full drop-shadow">
+      <circle cx="12" cy="12" r="10" className="fill-emerald-500" />
+      <path d="M10 7.5l5 4.5-5 4.5z" className="fill-white" />
+    </svg>
+  );
+}
+
+function TargetIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full drop-shadow">
+      <path
+        d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"
+        className="fill-rose-600"
+      />
+      <circle cx="12" cy="9" r="2.6" className="fill-white" />
+    </svg>
+  );
+}
+
+const TILE = 'aspect-square rounded-[3px] transition-colors duration-300 ease-out';
+const TILE_SHADOW = 'shadow-[0_2px_0_rgb(117,108,108)] dark:shadow-[0_2px_0_rgb(15,23,42)]';
+
+const KIND_CLASS: Record<CellKind, string> = {
+  empty: `${TILE_SHADOW} bg-stone-400 dark:bg-slate-600`,
+  wall: `${TILE_SHADOW} brick-wall animate-pop`,
+  visited: `${TILE_SHADOW} bg-sky-500/70 dark:bg-sky-500/60`,
+  path: `${TILE_SHADOW} bg-rose-500 animate-pop`,
+};
+
 const Cell = memo(function Cell({
   row,
   col,
@@ -64,19 +95,17 @@ const Cell = memo(function Cell({
   isStart: boolean;
   isEnd: boolean;
 }) {
-  let className = 'bg-white dark:bg-slate-900';
-  if (isStart) className = 'bg-emerald-500 cursor-grab';
-  else if (isEnd) className = 'bg-rose-500 cursor-grab';
-  else if (kind === 'wall') className = 'bg-slate-700 dark:bg-slate-300 animate-pop';
-  else if (kind === 'path') className = 'bg-amber-400 animate-pop';
-  else if (kind === 'visited') className = 'bg-sky-300 dark:bg-sky-700 animate-pop';
+  const marker = isStart || isEnd;
   return (
     <div
       data-row={row}
       data-col={col}
       data-kind={isStart ? 'start' : isEnd ? 'end' : kind}
-      className={`aspect-square ${className}`}
-    />
+      className={`${TILE} ${marker ? 'cursor-grab p-px' : KIND_CLASS[kind]}`}
+    >
+      {isStart && <StartIcon />}
+      {isEnd && <TargetIcon />}
+    </div>
   );
 });
 
@@ -96,11 +125,12 @@ function cellFromEvent(event: {
 }
 
 const LEGEND = [
-  { label: 'Start', className: 'bg-emerald-500' },
-  { label: 'Target', className: 'bg-rose-500' },
-  { label: 'Wall', className: 'bg-slate-700 dark:bg-slate-300' },
-  { label: 'Visited', className: 'bg-sky-300 dark:bg-sky-700' },
-  { label: 'Path', className: 'bg-amber-400' },
+  { label: 'Start', className: 'rounded-full bg-emerald-500' },
+  { label: 'Target', className: 'rounded-full bg-rose-600' },
+  { label: 'Unvisited', className: 'bg-stone-400 dark:bg-slate-600' },
+  { label: 'Wall', className: 'brick-wall' },
+  { label: 'Visited', className: 'bg-sky-500/70' },
+  { label: 'Shortest path', className: 'bg-rose-500' },
 ];
 
 export function PathfindingPage() {
@@ -110,7 +140,7 @@ export function PathfindingPage() {
 
   const [grid, setGrid] = useState<GridSpec>(() => createGrid(dims));
   const [algorithmId, setAlgorithmId] = useState<PathAlgorithmId>('astar');
-  const [speed, setSpeed] = useState(8);
+  const [speed, setSpeed] = useState(5);
   const [result, setResult] = useState<PathResult | null>(null);
 
   if (grid.rows !== dims.rows || grid.cols !== dims.cols) {
@@ -313,7 +343,7 @@ export function PathfindingPage() {
           data-testid="grid"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          className={`mt-4 grid touch-none select-none gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 dark:border-slate-700 dark:bg-slate-700 ${locked ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
+          className={`mt-4 grid touch-none select-none gap-[3px] pb-[2px] sm:gap-1 ${locked ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
           style={{ gridTemplateColumns: `repeat(${grid.cols}, minmax(0, 1fr))` }}
         >
           {kinds.map((kind, i) => {

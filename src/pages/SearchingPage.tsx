@@ -59,7 +59,7 @@ const LEGEND = [
 export function SearchingPage() {
   const [algorithmId, setAlgorithmId] = useState<SearchAlgorithmId>('binary');
   const [size, setSize] = useState(15);
-  const [speed, setSpeed] = useState(3);
+  const [speed, setSpeed] = useState(2);
   const [baseArray, setBaseArray] = useState(() => randomArray(15, MIN_VALUE, MAX_VALUE));
   const [targetInput, setTargetInput] = useState(() => String(baseArray[randomInt(0, 14)]));
 
