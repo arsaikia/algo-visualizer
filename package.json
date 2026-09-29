@@ -6,14 +6,15 @@
   "homepage": "https://arsaikia.github.io/algo-visualizer/",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && cp dist/index.html dist/404.html",
+    "build": "tsc -b && vite build",
+    "build:gh-pages": "tsc -b && vite build --base=/algo-visualizer/ && cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build:gh-pages",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {

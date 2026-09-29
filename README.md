@@ -67,8 +67,9 @@ Requires Node.js 18+.
 
 ```bash
 npm install
-npm run dev          # start the dev server at http://localhost:5173/algo-visualizer/
-npm run build        # type-check and build to dist/ (also writes dist/404.html for SPA routing)
+npm run dev          # start the dev server at http://localhost:5173/
+npm run build        # type-check and build to dist/ (served from /, e.g. Vercel)
+npm run build:gh-pages # build for GitHub Pages (base /algo-visualizer/ + 404.html)
 npm run preview      # serve the production build locally
 npm test             # run the Vitest + React Testing Library suite once
 npm run test:watch   # run tests in watch mode
@@ -88,19 +89,28 @@ src/
   lib/          random helpers
 ```
 
-## Deploying to GitHub Pages
+## Deploying
 
-The app is configured for https://arsaikia.github.io/algo-visualizer/:
+The app builds for the site root (`base: '/'`) by default. React Router reads its basename from
+Vite's `BASE_URL`, so the same code works under a sub-path.
 
-- `vite.config.ts` sets `base: '/algo-visualizer/'`, and the router uses the same base path.
-- `npm run build` copies `index.html` to `404.html`, so deep links such as `/algo-visualizer/sorting`
-  load the app on GitHub Pages.
+### Vercel
 
-To deploy:
+`vercel.json` is included: it uses the Vite preset, runs `npm run build`, serves `dist/` and rewrites
+every path to `index.html` so deep links such as `/sorting` work.
+
+- **Dashboard:** import `arsaikia/algo-visualizer` at https://vercel.com/new. The settings are
+  detected automatically.
+- **CLI:** `npx vercel` (preview) or `npx vercel --prod`.
+
+### GitHub Pages
+
+For https://arsaikia.github.io/algo-visualizer/:
 
 ```bash
-npm run deploy   # runs the build (predeploy), then publishes dist/ to the gh-pages branch
+npm run deploy   # runs build:gh-pages (base /algo-visualizer/ + 404.html), then publishes dist/ to gh-pages
 ```
 
-Then, in the repository settings, go to **Settings → Pages** and set the source to the `gh-pages`
-branch (root).
+`build:gh-pages` copies `index.html` to `404.html`, so deep links such as `/algo-visualizer/sorting`
+load the app. In the repository settings, go to **Settings → Pages** and set the source to the
+`gh-pages` branch (root).
