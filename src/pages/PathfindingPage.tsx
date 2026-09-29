@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import {
   PATH_ALGORITHMS,
   PATH_ALGORITHM_LIST,
@@ -71,22 +71,43 @@ function resizeGrid(g: GridSpec, rows: number, cols: number): GridSpec {
 
 const increment = (count: number) => count + 1;
 
+function MarkerTile({ tone, children }: { tone: 'start' | 'end'; children: ReactNode }) {
+  const color =
+    tone === 'start'
+      ? 'from-emerald-400 to-emerald-600 shadow-emerald-600/40'
+      : 'from-rose-400 to-rose-600 shadow-rose-600/40';
+  return (
+    <span
+      className={`flex h-full w-full items-center justify-center rounded-[22%] bg-gradient-to-br shadow-md ring-1 ring-white/30 transition-transform duration-150 hover:scale-110 ${color}`}
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-[70%] w-[70%] fill-none stroke-white"
+        strokeWidth={2.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {children}
+      </svg>
+    </span>
+  );
+}
+
 function StartIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full">
-      <circle cx="12" cy="12" r="9" className="fill-emerald-500" />
-      <path d="M10 8l5 4-5 4z" className="fill-white" />
-    </svg>
+    <MarkerTile tone="start">
+      <path d="M5 12h13M12.5 6l6 6-6 6" />
+    </MarkerTile>
   );
 }
 
 function TargetIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full">
-      <circle cx="12" cy="12" r="9" className="fill-rose-500" />
-      <circle cx="12" cy="12" r="5.5" className="fill-white" />
-      <circle cx="12" cy="12" r="2.5" className="fill-rose-500" />
-    </svg>
+    <MarkerTile tone="end">
+      <path d="M6 21V4" />
+      <path d="M6 4.5h11l-2.5 4 2.5 4H6" className="fill-white" />
+    </MarkerTile>
   );
 }
 
@@ -99,9 +120,6 @@ const KIND_CLASS: Record<CellKind, string> = {
   visited: `${GRID_LINE} bg-sky-300 animate-pop dark:bg-sky-700`,
   path: `${GRID_LINE} bg-amber-400 animate-pop`,
 };
-
-// Walls use a 2×2-cell texture tile; each cell shows its quadrant so adjacent walls join up.
-const WALL_QUADRANT = ['bg-left-top', 'bg-right-top', 'bg-left-bottom', 'bg-right-bottom'];
 
 const Cell = memo(function Cell({
   row,
@@ -124,9 +142,9 @@ const Cell = memo(function Cell({
         ? 'bg-amber-400'
         : 'bg-white dark:bg-slate-900';
   const className = marker
-    ? `${GRID_LINE} ${markerBg} cursor-grab p-[8%] active:cursor-grabbing`
+    ? `${GRID_LINE} ${markerBg} cursor-grab p-[10%] active:cursor-grabbing`
     : kind === 'wall'
-      ? `${KIND_CLASS.wall} ${WALL_QUADRANT[(row % 2) * 2 + (col % 2)]}`
+      ? KIND_CLASS.wall
       : KIND_CLASS[kind];
   return (
     <div
@@ -158,9 +176,9 @@ function cellFromEvent(event: {
 }
 
 const LEGEND = [
-  { label: 'Start', className: 'rounded-full bg-emerald-500' },
-  { label: 'Target', className: 'rounded-full bg-rose-500' },
-  { label: 'Wall', className: 'wall-texture bg-left-top' },
+  { label: 'Start', className: 'rounded bg-gradient-to-br from-emerald-400 to-emerald-600' },
+  { label: 'Target', className: 'rounded bg-gradient-to-br from-rose-400 to-rose-600' },
+  { label: 'Wall', className: 'wall-texture' },
   { label: 'Visited', className: 'bg-sky-300 dark:bg-sky-700' },
   { label: 'Shortest path', className: 'bg-amber-400' },
 ];

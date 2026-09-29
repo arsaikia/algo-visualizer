@@ -21,13 +21,25 @@
 }
 
 @layer components {
+  /* Solid slate block with a fine diagonal hatch; fixed attachment keeps the hatch continuous
+     across adjacent wall cells so a run of walls reads as one surface. */
   .wall-texture {
-    background-color: #0f1422;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%234b5876'/%3E%3Cstop offset='1' stop-color='%232b3346'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='40' fill='%230f1422'/%3E%3Crect x='0.75' y='0.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='1.75' y='1.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='20.75' y='0.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='21.75' y='1.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='-9.25' y='10.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='-8.25' y='11.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='10.75' y='10.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='11.75' y='11.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='30.75' y='10.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='31.75' y='11.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='0.75' y='20.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='1.75' y='21.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='20.75' y='20.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='21.75' y='21.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='-9.25' y='30.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='-8.25' y='31.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='10.75' y='30.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='11.75' y='31.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3Crect x='30.75' y='30.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='31.75' y='31.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.16)'/%3E%3C/svg%3E");
-    background-size: 200% 200%;
+    background-color: theme('colors.slate.700');
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgb(255 255 255 / 0.09) 0 1.5px,
+      transparent 1.5px 6px
+    );
+    background-attachment: fixed;
+    box-shadow: inset 0 0 0 0.5px theme('colors.slate.800');
   }
   .dark .wall-texture {
-    background-color: #1a2133;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23a5b4cf'/%3E%3Cstop offset='1' stop-color='%236b7a99'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='40' height='40' fill='%231a2133'/%3E%3Crect x='0.75' y='0.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='1.75' y='1.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='20.75' y='0.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='21.75' y='1.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='-9.25' y='10.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='-8.25' y='11.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='10.75' y='10.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='11.75' y='11.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='30.75' y='10.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='31.75' y='11.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='0.75' y='20.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='1.75' y='21.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='20.75' y='20.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='21.75' y='21.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='-9.25' y='30.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='-8.25' y='31.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='10.75' y='30.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='11.75' y='31.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3Crect x='30.75' y='30.75' width='18.5' height='8.5' rx='1.6' fill='url(%23g)'/%3E%3Crect x='31.75' y='31.35' width='16.5' height='0.9' rx='0.45' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E");
+    background-color: theme('colors.slate.400');
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgb(15 23 42 / 0.18) 0 1.5px,
+      transparent 1.5px 6px
+    );
+    box-shadow: inset 0 0 0 0.5px theme('colors.slate.500');
   }
 }

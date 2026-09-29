@@ -58,7 +58,7 @@ On the grid you can click or drag to add or remove walls, drag the start and tar
 the Visualize, Pause/Resume, Skip to end, Clear path, Clear walls, Random walls and Clear grid
 buttons. A **Grid size** slider changes the number of columns (rows follow the screen's aspect
 ratio) and keeps existing walls that still fit. After a run finishes, dragging the start, target or
-walls recomputes the result instantly. Walls use a seamless SVG brick texture that joins across
+walls recomputes the result instantly. Walls are slate blocks with a fine diagonal hatch that runs continuously across
 adjacent cells in both themes. Grid editing works with mouse, touch and pen through pointer events.
 
 ## Local development
