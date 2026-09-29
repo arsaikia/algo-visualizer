@@ -130,4 +130,35 @@ describe('PathfindingPage', () => {
     expect(document.querySelectorAll('[data-kind="start"]')).toHaveLength(1);
     expect(row).not.toBe(0);
   });
+
+  it('resizes the grid while keeping walls and markers inside it', () => {
+    renderApp('/pathfinding');
+    fireEvent.pointerDown(cell(0, 0));
+    fireEvent.pointerUp(window);
+    const size = screen.getByLabelText(/grid size/i) as HTMLInputElement;
+    fireEvent.change(size, { target: { value: size.min } });
+    const grid = screen.getByTestId('grid');
+    const cols = Number(size.min);
+    expect(grid.querySelectorAll(`[data-row="0"]`)).toHaveLength(cols);
+    expect(cell(0, 0).dataset.kind).toBe('wall');
+    expect(document.querySelectorAll('[data-kind="start"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-kind="end"]')).toHaveLength(1);
+  });
+
+  it('updates a finished path live when the target is dragged', async () => {
+    renderApp('/pathfinding');
+    await userEvent.click(screen.getByRole('button', { name: 'Visualize' }));
+    await act(async () => {
+      screen.getByRole('button', { name: 'Pause' }).click();
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Skip to end' }));
+    const end = document.querySelector('[data-kind="end"]') as HTMLElement;
+    const before = document.querySelectorAll('[data-kind="path"]').length;
+    fireEvent.pointerDown(end);
+    fireEvent.pointerMove(cell(0, Number(end.dataset.col)));
+    fireEvent.pointerUp(window);
+    expect(cell(0, Number(end.dataset.col)).dataset.kind).toBe('end');
+    expect(screen.getByRole('status')).toHaveTextContent(/path found/i);
+    expect(document.querySelectorAll('[data-kind="path"]').length).toBeGreaterThan(before);
+  });
 });

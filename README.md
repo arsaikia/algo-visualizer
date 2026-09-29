@@ -56,7 +56,10 @@ and the UI reports it clearly.
 
 On the grid you can click or drag to add or remove walls, drag the start and target cells, and use
 the Visualize, Pause/Resume, Skip to end, Clear path, Clear walls, Random walls and Clear grid
-buttons. Grid editing works with mouse, touch and pen through pointer events.
+buttons. A **Grid size** slider changes the number of columns (rows follow the screen's aspect
+ratio) and keeps existing walls that still fit. After a run finishes, dragging the start, target or
+walls recomputes the result instantly. Walls use a seamless SVG brick texture that joins across
+adjacent cells in both themes. Grid editing works with mouse, touch and pen through pointer events.
 
 ## Local development
 

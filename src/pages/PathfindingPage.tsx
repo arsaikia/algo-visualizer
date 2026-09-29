@@ -26,19 +26,21 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 
 type CellKind = 'empty' | 'wall' | 'visited' | 'path';
 type DragMode = 'start' | 'end' | 'wall-add' | 'wall-remove';
+type Layout = 'desktop' | 'tablet' | 'mobile';
 
-interface Dimensions {
-  rows: number;
-  cols: number;
-}
+/** Column range and rows-per-column aspect for each breakpoint. */
+const LAYOUTS: Record<Layout, { min: number; max: number; initial: number; aspect: number }> = {
+  desktop: { min: 12, max: 60, initial: 36, aspect: 0.5 },
+  tablet: { min: 10, max: 40, initial: 24, aspect: 0.65 },
+  mobile: { min: 6, max: 22, initial: 13, aspect: 1.3 },
+};
 
-function gridDimensions(isDesktop: boolean, isTablet: boolean): Dimensions {
-  if (isDesktop) return { rows: 16, cols: 30 };
-  if (isTablet) return { rows: 14, cols: 20 };
-  return { rows: 16, cols: 11 };
-}
+const rowsFor = (layout: Layout, cols: number) =>
+  Math.max(5, Math.round(cols * LAYOUTS[layout].aspect));
 
-function createGrid({ rows, cols }: Dimensions): GridSpec {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+function createGrid(rows: number, cols: number): GridSpec {
   const midRow = Math.floor(rows / 2);
   return {
     rows,
@@ -49,38 +51,57 @@ function createGrid({ rows, cols }: Dimensions): GridSpec {
   };
 }
 
+/** Resizes a grid, keeping walls that still fit and clamping start/end inside it. */
+function resizeGrid(g: GridSpec, rows: number, cols: number): GridSpec {
+  const walls = createWalls(rows, cols);
+  for (let r = 0; r < Math.min(rows, g.rows); r++) {
+    for (let c = 0; c < Math.min(cols, g.cols); c++) {
+      walls[r * cols + c] = g.walls[r * g.cols + c] === true;
+    }
+  }
+  const start = { row: clamp(g.start.row, 0, rows - 1), col: clamp(g.start.col, 0, cols - 1) };
+  let end = { row: clamp(g.end.row, 0, rows - 1), col: clamp(g.end.col, 0, cols - 1) };
+  if (samePoint(start, end)) {
+    end = { row: end.row, col: end.col > 0 ? end.col - 1 : end.col + 1 };
+  }
+  walls[toIndex(start, cols)] = false;
+  walls[toIndex(end, cols)] = false;
+  return { rows, cols, walls, start, end };
+}
+
 const increment = (count: number) => count + 1;
 
 function StartIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full drop-shadow">
-      <circle cx="12" cy="12" r="10" className="fill-emerald-500" />
-      <path d="M10 7.5l5 4.5-5 4.5z" className="fill-white" />
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full">
+      <circle cx="12" cy="12" r="9" className="fill-emerald-500" />
+      <path d="M10 8l5 4-5 4z" className="fill-white" />
     </svg>
   );
 }
 
 function TargetIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full drop-shadow">
-      <path
-        d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"
-        className="fill-rose-600"
-      />
-      <circle cx="12" cy="9" r="2.6" className="fill-white" />
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-full w-full">
+      <circle cx="12" cy="12" r="9" className="fill-rose-500" />
+      <circle cx="12" cy="12" r="5.5" className="fill-white" />
+      <circle cx="12" cy="12" r="2.5" className="fill-rose-500" />
     </svg>
   );
 }
 
-const TILE = 'aspect-square rounded-[3px] transition-colors duration-300 ease-out';
-const TILE_SHADOW = 'shadow-[0_2px_0_rgb(117,108,108)] dark:shadow-[0_2px_0_rgb(15,23,42)]';
+const GRID_LINE =
+  'shadow-[inset_-1px_-1px_0_theme(colors.slate.200)] dark:shadow-[inset_-1px_-1px_0_theme(colors.slate.800)]';
 
 const KIND_CLASS: Record<CellKind, string> = {
-  empty: `${TILE_SHADOW} bg-stone-400 dark:bg-slate-600`,
-  wall: `${TILE_SHADOW} brick-wall animate-pop`,
-  visited: `${TILE_SHADOW} bg-sky-500/70 dark:bg-sky-500/60`,
-  path: `${TILE_SHADOW} bg-rose-500 animate-pop`,
+  empty: `${GRID_LINE} bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800`,
+  wall: 'wall-texture',
+  visited: `${GRID_LINE} bg-sky-300 animate-pop dark:bg-sky-700`,
+  path: `${GRID_LINE} bg-amber-400 animate-pop`,
 };
+
+// Walls use a 2×2-cell texture tile; each cell shows its quadrant so adjacent walls join up.
+const WALL_QUADRANT = ['bg-left-top', 'bg-right-top', 'bg-left-bottom', 'bg-right-bottom'];
 
 const Cell = memo(function Cell({
   row,
@@ -96,12 +117,24 @@ const Cell = memo(function Cell({
   isEnd: boolean;
 }) {
   const marker = isStart || isEnd;
+  const markerBg =
+    kind === 'visited'
+      ? 'bg-sky-300 dark:bg-sky-700'
+      : kind === 'path'
+        ? 'bg-amber-400'
+        : 'bg-white dark:bg-slate-900';
+  const className = marker
+    ? `${GRID_LINE} ${markerBg} cursor-grab p-[8%] active:cursor-grabbing`
+    : kind === 'wall'
+      ? `${KIND_CLASS.wall} ${WALL_QUADRANT[(row % 2) * 2 + (col % 2)]}`
+      : KIND_CLASS[kind];
   return (
     <div
       data-row={row}
       data-col={col}
       data-kind={isStart ? 'start' : isEnd ? 'end' : kind}
-      className={`${TILE} ${marker ? 'cursor-grab p-px' : KIND_CLASS[kind]}`}
+      title={isStart ? 'Start — drag to move' : isEnd ? 'Target — drag to move' : undefined}
+      className={`aspect-square transition-colors duration-200 ${className}`}
     >
       {isStart && <StartIcon />}
       {isEnd && <TargetIcon />}
@@ -126,50 +159,63 @@ function cellFromEvent(event: {
 
 const LEGEND = [
   { label: 'Start', className: 'rounded-full bg-emerald-500' },
-  { label: 'Target', className: 'rounded-full bg-rose-600' },
-  { label: 'Unvisited', className: 'bg-stone-400 dark:bg-slate-600' },
-  { label: 'Wall', className: 'brick-wall' },
-  { label: 'Visited', className: 'bg-sky-500/70' },
-  { label: 'Shortest path', className: 'bg-rose-500' },
+  { label: 'Target', className: 'rounded-full bg-rose-500' },
+  { label: 'Wall', className: 'wall-texture bg-left-top' },
+  { label: 'Visited', className: 'bg-sky-300 dark:bg-sky-700' },
+  { label: 'Shortest path', className: 'bg-amber-400' },
 ];
 
 export function PathfindingPage() {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const isTablet = useMediaQuery('(min-width: 640px)');
-  const dims = gridDimensions(isDesktop, isTablet);
+  const layout: Layout = isDesktop ? 'desktop' : isTablet ? 'tablet' : 'mobile';
+  const range = LAYOUTS[layout];
 
-  const [grid, setGrid] = useState<GridSpec>(() => createGrid(dims));
+  const [layoutState, setLayoutState] = useState(layout);
+  const [cols, setCols] = useState(range.initial);
+  const [grid, setGrid] = useState<GridSpec>(() =>
+    createGrid(rowsFor(layout, range.initial), range.initial),
+  );
   const [algorithmId, setAlgorithmId] = useState<PathAlgorithmId>('astar');
   const [speed, setSpeed] = useState(5);
   const [result, setResult] = useState<PathResult | null>(null);
+  // When true the current result is shown fully (live update while dragging start/target).
+  const [instant, setInstant] = useState(false);
 
-  if (grid.rows !== dims.rows || grid.cols !== dims.cols) {
-    setGrid(createGrid(dims));
+  if (layoutState !== layout) {
+    setLayoutState(layout);
+    setCols(range.initial);
+    setGrid((g) => resizeGrid(g, rowsFor(layout, range.initial), range.initial));
     setResult(null);
   }
 
   const frames = useMemo(
-    () => (result ? new Array<null>(result.visited.length + result.path.length).fill(null) : []),
-    [result],
+    () =>
+      result && !instant
+        ? new Array<null>(result.visited.length + result.path.length).fill(null)
+        : [],
+    [result, instant],
   );
   const player = useFramePlayer(frames, 0, increment, delayForSpeed(speed), {
-    autoPlay: result !== null,
+    autoPlay: result !== null && !instant,
   });
+  const progress = instant && result ? result.visited.length + result.path.length : player.index;
+  const done = result !== null && (instant || player.isDone);
   const running = player.isPlaying;
-  const inProgress = result !== null && !player.isDone;
+  const inProgress = result !== null && !done;
   const locked = running || inProgress;
 
   const kinds = useMemo(() => {
     const out: CellKind[] = grid.walls.map((w) => (w ? 'wall' : 'empty'));
     if (result) {
-      const visitedCount = Math.min(player.index, result.visited.length);
+      const visitedCount = Math.min(progress, result.visited.length);
       for (let i = 0; i < visitedCount; i++)
         out[toIndex(result.visited[i] as Point, grid.cols)] = 'visited';
-      const pathCount = Math.max(0, player.index - result.visited.length);
+      const pathCount = Math.max(0, progress - result.visited.length);
       for (let i = 0; i < pathCount; i++) out[toIndex(result.path[i] as Point, grid.cols)] = 'path';
     }
     return out;
-  }, [grid, result, player.index]);
+  }, [grid, result, progress]);
 
   const dragMode = useRef<DragMode | null>(null);
   const lastCell = useRef<number | null>(null);
@@ -187,23 +233,30 @@ export function PathfindingPage() {
     };
   }, []);
 
-  const applyEdit = useCallback((mode: DragMode, p: Point) => {
-    setGrid((g) => {
-      const index = toIndex(p, g.cols);
-      if (mode === 'start' || mode === 'end') {
-        const other = mode === 'start' ? g.end : g.start;
-        if (samePoint(p, other) || g.walls[index]) return g;
-        return { ...g, [mode]: p };
-      }
-      if (samePoint(p, g.start) || samePoint(p, g.end)) return g;
+  const applyEdit = (mode: DragMode, p: Point) => {
+    const index = toIndex(p, grid.cols);
+    let next: GridSpec;
+    if (mode === 'start' || mode === 'end') {
+      const other = mode === 'start' ? grid.end : grid.start;
+      if (samePoint(p, other) || grid.walls[index]) return;
+      next = { ...grid, [mode]: p };
+    } else {
+      if (samePoint(p, grid.start) || samePoint(p, grid.end)) return;
       const wall = mode === 'wall-add';
-      if (g.walls[index] === wall) return g;
-      const walls = [...g.walls];
+      if (grid.walls[index] === wall) return;
+      const walls = [...grid.walls];
       walls[index] = wall;
-      return { ...g, walls };
-    });
-    setResult(null);
-  }, []);
+      next = { ...grid, walls };
+    }
+    setGrid(next);
+    // After a finished run, keep the result live so moving markers or walls updates it instantly.
+    if (done) {
+      setResult(PATH_ALGORITHMS[algorithmId].run(next));
+      setInstant(true);
+    } else {
+      setResult(null);
+    }
+  };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (locked) return;
@@ -230,15 +283,22 @@ export function PathfindingPage() {
     applyEdit(mode, p);
   };
 
-  const visualize = () => setResult(PATH_ALGORITHMS[algorithmId].run(grid));
-  const clearPath = () => setResult(null);
+  const reset = useCallback(() => {
+    setResult(null);
+    setInstant(false);
+  }, []);
+
+  const visualize = () => {
+    setInstant(false);
+    setResult(PATH_ALGORITHMS[algorithmId].run(grid));
+  };
   const clearWalls = () => {
     setGrid((g) => ({ ...g, walls: createWalls(g.rows, g.cols) }));
-    setResult(null);
+    reset();
   };
   const clearGrid = () => {
-    setGrid(createGrid(dims));
-    setResult(null);
+    setGrid(createGrid(rowsFor(layout, cols), cols));
+    reset();
   };
   const randomWalls = () => {
     setGrid((g) => ({
@@ -248,18 +308,23 @@ export function PathfindingPage() {
         return !samePoint(p, g.start) && !samePoint(p, g.end) && Math.random() < 0.28;
       }),
     }));
-    setResult(null);
+    reset();
+  };
+  const changeSize = (nextCols: number) => {
+    setCols(nextCols);
+    setGrid((g) => resizeGrid(g, rowsFor(layout, nextCols), nextCols));
+    reset();
   };
 
   const algorithm = PATH_ALGORITHMS[algorithmId];
-  const visitedShown = result ? Math.min(player.index, result.visited.length) : 0;
+  const visitedShown = result ? Math.min(progress, result.visited.length) : 0;
 
-  let message = 'Click or drag to draw walls. Drag the green start or red target to move them.';
+  let message = 'Click or drag to draw walls. Drag the start (▶) or target (◎) to move them.';
   let tone: 'neutral' | 'success' | 'error' = 'neutral';
-  if (result && !player.isDone) {
+  if (result && !done) {
     message = `${running ? 'Exploring' : 'Paused'}… ${visitedShown} cells visited.`;
   } else if (result?.found) {
-    message = `Path found! Length ${result.path.length - 1} steps; ${result.visited.length} cells visited.`;
+    message = `Path found! Length ${result.path.length - 1} steps; ${result.visited.length} cells visited. Drag the start or target to update it live.`;
     tone = 'success';
   } else if (result) {
     message = `No path exists — the target is unreachable. ${result.visited.length} cells visited.`;
@@ -281,9 +346,18 @@ export function PathfindingPage() {
               options={PATH_ALGORITHM_LIST.map((a) => ({ value: a.id, label: a.name }))}
               onChange={(id) => {
                 setAlgorithmId(id);
-                setResult(null);
+                reset();
               }}
               disabled={locked}
+            />
+            <Slider
+              label="Grid size"
+              value={clamp(cols, range.min, range.max)}
+              min={range.min}
+              max={range.max}
+              onChange={changeSize}
+              disabled={locked}
+              display={`${grid.rows}×${grid.cols}`}
             />
             <Slider
               label="Speed"
@@ -308,7 +382,7 @@ export function PathfindingPage() {
                 Skip to end
               </Button>
             )}
-            <Button onClick={clearPath} disabled={running || result === null}>
+            <Button onClick={reset} disabled={running || result === null}>
               Clear path
             </Button>
             <Button onClick={clearWalls} disabled={running}>
@@ -330,10 +404,7 @@ export function PathfindingPage() {
           tone={tone}
           stats={[
             { label: 'Visited', value: visitedShown },
-            {
-              label: 'Path length',
-              value: result?.found && player.isDone ? result.path.length - 1 : '—',
-            },
+            { label: 'Path length', value: result?.found && done ? result.path.length - 1 : '—' },
             { label: 'Grid', value: `${grid.rows}×${grid.cols}` },
           ]}
         />
@@ -343,7 +414,7 @@ export function PathfindingPage() {
           data-testid="grid"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
-          className={`mt-4 grid touch-none select-none gap-[3px] pb-[2px] sm:gap-1 ${locked ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
+          className={`mt-4 grid touch-none select-none overflow-hidden rounded-lg border-l border-t border-slate-200 ring-1 ring-slate-200 dark:border-slate-800 dark:ring-slate-800 ${locked ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
           style={{ gridTemplateColumns: `repeat(${grid.cols}, minmax(0, 1fr))` }}
         >
           {kinds.map((kind, i) => {
